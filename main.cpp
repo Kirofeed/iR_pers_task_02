@@ -34,6 +34,7 @@ public:
     Node* get_root() const { return root; }
     int Get_max_msl();
     Node* Get_root();
+    void get_max_semipath_nodes(Node* node, set<Node*>& path_nodes);
     void printing(Node* nodie, ostream& os);
 };
 
@@ -91,43 +92,47 @@ void Tree::collect_max_msl_nodes(Node* node, int max_msl, vector<Node*>& max_nod
     collect_max_msl_nodes(node->right, max_msl, max_nodes);
 }
 
-Node* Tree::find_deepest_node(Node* node) {
-    if (!node) return nullptr;
-    queue<Node*> q;
-    q.push(node);
-    Node* deepest = nullptr;
-    while (!q.empty()) {
-        deepest = q.front();
-        q.pop();
-        if (deepest->left) q.push(deepest->left);
-        if (deepest->right) q.push(deepest->right);
+void Tree::get_max_semipath_nodes(Node* node, set<Node*>& path_nodes) {
+    Node** current = &node;
+    path_nodes.emplace(node);
+    while ((*current)->left || (*current)->right) {
+        if (!(*current)->right) {
+            current = &(*current)->left;
+            path_nodes.emplace(*current);
+        }
+        else if (!(*current)->left) {
+            current = &(*current)->right;
+            path_nodes.emplace(*current);
+        }
+        else {
+            if ((*current)->left->height > (*current)->right->height) {
+                current = &(*current)->left;
+                path_nodes.emplace(*current);
+            }
+            else if ((*current)->left->height < (*current)->right->height) {
+                current = &(*current)->right;
+                path_nodes.emplace(*current);
+            }
+            else {
+                get_max_semipath_nodes((*current)->left, path_nodes);
+                get_max_semipath_nodes((*current)->right, path_nodes);
+                return;
+            }
+        }
     }
-    return deepest;
+    return;
+    
 }
 
 void Tree::collect_all_path_nodes(Node* node, set<Node*>& path_nodes) {
-    if (!node) return;
-
-    Node* left_deepest = find_deepest_node(node->left);
-    Node* right_deepest = find_deepest_node(node->right);
-
-    if (left_deepest) {
-        Node* current = left_deepest;
-        while (current != node) {
-            path_nodes.insert(current);
-            current = current->parent;
-        }
-        path_nodes.insert(node);
+    path_nodes.emplace(node);
+    if (node->left) {
+        get_max_semipath_nodes(node->left, path_nodes);
     }
-
-    if (right_deepest) {
-        Node* current = right_deepest;
-        while (current != node) {
-            path_nodes.insert(current);
-            current = current->parent;
-        }
-        path_nodes.insert(node);
+    if (node->right) {
+        get_max_semipath_nodes(node->right, path_nodes);
     }
+    return;
 }
 
 vector<Node*> Tree::sorted_nodes(const set<Node*>& path_nodes) {
